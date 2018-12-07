@@ -2,15 +2,17 @@ $SendMessage = $null
 #Get all users whose password expires in X days and less, this sets the days
 $LessThan = 7
 #Teams web hook URL
-$uri = ""
+$uri = "INSET WEBHOOK URL"
+
+$ItemImage = 'https://img.icons8.com/color/1600/circled-user-male-skin-type-1-2.png'
 
 $PWExpiringTable = New-Object 'System.Collections.Generic.List[System.Object]'
 $ArrayTable = New-Object 'System.Collections.Generic.List[System.Object]'
 
+$maxPasswordAge = ((Get-ADDefaultDomainPasswordPolicy).MaxPasswordAge).Days
 #Get all users and store in a variable named $Users
 Get-Aduser -filter * -properties * | ForEach-Object{
 	
-	$maxPasswordAge = ((Get-ADDefaultDomainPasswordPolicy).MaxPasswordAge).Days
 	
 	if ((($_.PasswordNeverExpires) -eq $False) -and (($_.Enabled) -ne $false))
 	{
@@ -28,9 +30,7 @@ Get-Aduser -filter * -properties * | ForEach-Object{
 		{
 			
 			#Check for Fine Grained Passwords
-			#TODO
-			#CHECK THIS MAKE SURE IT WILL ALLOW THE NAME 
-			$PasswordPol = (Get-ADUserResultantPasswordPolicy -Identity $_.objectGUID)
+			$PasswordPol = (Get-ADUserResultantPasswordPolicy -Identity $_.objectGUID -ErrorAction SilentlyContinue)
 			
 			if ($Null -ne ($PasswordPol))
 			{
@@ -80,10 +80,10 @@ $PWExpiringTable | ForEach-Object{
 			activityTitle = "$($_.Name)"
 			activitySubtitle = "$($_.EmailAddress)"
 			activityText  = "$($_.Name)'s password has already expired!"
-			activityImage = 'https://img.icons8.com/color/1600/circled-user-male-skin-type-1-2.png' # this value would be a path to a nice image you would like to display in notifications
+			activityImage = $ItemImage
 			
 			
-			facts = @(
+			facts		  = @(
 				@{
 					name  = 'Days Until Password Expires:'
 					value = $_.DaysUntil
@@ -97,12 +97,6 @@ $PWExpiringTable | ForEach-Object{
 					value = $_.LockedOut
 				}
 			)
-			potentialAction = @(@{
-					'@context' = 'http://schema.org'
-					'@type'    = 'ViewAction'
-					name	   = 'Click here to visit PowerShell.org'
-					target	   = @('http://powershell.org')
-				})
 		}
 	}
 	Else
@@ -111,10 +105,10 @@ $PWExpiringTable | ForEach-Object{
 			activityTitle = "$($_.Name)"
 			activitySubtitle = "$($_.EmailAddress)"
 			activityText  = "$($_.Name) needs to change their password in $($_.DaysUntil) days"
-			activityImage = 'https://img.icons8.com/color/1600/circled-user-male-skin-type-1-2.png'
+			activityImage = $ItemImage
 			
 			
-			facts = @(
+			facts		  = @(
 				@{
 					name  = 'Days Until Password Expires:'
 					value = $_.DaysUntil
@@ -128,12 +122,6 @@ $PWExpiringTable | ForEach-Object{
 					value = $_.LockedOut
 				}
 			)
-			potentialAction = @(@{
-					'@context' = 'http://schema.org'
-					'@type'    = 'ViewAction'
-					name	   = 'Click here to visit PowerShell.org'
-					target	   = @('http://powershell.org')
-				})
 		}
 	}
 	
@@ -146,9 +134,9 @@ $PWExpiringTable | ForEach-Object{
 
 $body = ConvertTo-Json -Depth 8 @{
 	title = 'Users With Password Expiring - Notification'
-	text  = "The following users have passwords expiring in under $LessThan days"
+	text  = "There are $($ArrayTable.Count) users that have passwords expiring in $($LessThan) days or less"
 	sections = $ArrayTable
-
+	
 }
 
 $SendMessage = Invoke-RestMethod -uri $uri -Method Post -body $body -ContentType 'application/json'
