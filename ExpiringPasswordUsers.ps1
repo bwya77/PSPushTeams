@@ -11,63 +11,58 @@ $ArrayTable = New-Object 'System.Collections.Generic.List[System.Object]'
 
 $maxPasswordAge = ((Get-ADDefaultDomainPasswordPolicy).MaxPasswordAge).Days
 #Get all users and store in a variable named $Users
-Get-Aduser -filter * -properties * | ForEach-Object{
+Get-Aduser -filter { (PasswordNeverExpires -eq $false) -and (enabled -eq $true) } -properties * | ForEach-Object{
+	#Get Password last set date
+	$passwordSetDate = ($_.PasswordLastSet)
 	
+	if ($null -eq $passwordSetDate)
+	{
+		#0x1 = Never Logged On
+		$daystoexpire = "0x1"
+	}
 	
-	if ((($_.PasswordNeverExpires) -eq $False) -and (($_.Enabled) -ne $false))
+	else
 	{
 		
-		#Get Password last set date
-		$passwordSetDate = ($_.PasswordLastSet)
+		#Check for Fine Grained Passwords
+		$PasswordPol = (Get-ADUserResultantPasswordPolicy -Identity $_.objectGUID -ErrorAction SilentlyContinue)
 		
-		if ($null -eq $passwordSetDate)
+		if ($Null -ne ($PasswordPol))
 		{
-			#0x1 = Never Logged On
-			$daystoexpire = "0x1"
+			
+			$maxPasswordAge = ($PasswordPol).MaxPasswordAge
 		}
 		
-		else
+		$expireson = $passwordsetdate.AddDays($maxPasswordAge)
+		$today = (Get-Date)
+		
+		#Gets the count on how many days until the password expires and stores it in the $daystoexpire var
+		$daystoexpire = (New-TimeSpan -Start $today -End $Expireson).Days
+		If ($daystoexpire -lt ($LessThan + 1))
 		{
-			
-			#Check for Fine Grained Passwords
-			$PasswordPol = (Get-ADUserResultantPasswordPolicy -Identity $_.objectGUID -ErrorAction SilentlyContinue)
-			
-			if ($Null -ne ($PasswordPol))
+			If ($daystoexpire -lt 0)
 			{
-				
-				$maxPasswordAge = ($PasswordPol).MaxPasswordAge
+				#0x2 = Password has been expired
+				$daystoexpire = "Password is Expired"
 			}
 			
-			$expireson = $passwordsetdate.AddDays($maxPasswordAge)
-			$today = (Get-Date)
-			
-			#Gets the count on how many days until the password expires and stores it in the $daystoexpire var
-			$daystoexpire = (New-TimeSpan -Start $today -End $Expireson).Days
-			If ($daystoexpire -lt ($LessThan + 1))
-			{
-				If ($daystoexpire -lt 0)
-				{
-					#0x2 = Password has been expired
-					$daystoexpire = "Password is Expired"
-				}
+			$obj = [PSCustomObject]@{
 				
-				$obj = [PSCustomObject]@{
-					
-					'Name' = $_.name
-					'DaysUntil' = $daystoexpire
-					'EmailAddress' = $_.emailaddress
-					'LastSet' = $_.PasswordLastSet.ToShortDateString()
-					'LockedOut' = $_.LockedOut
-					'UPN'  = $_.UserPrincipalName
-				}
-				
-				$PWExpiringTable.Add($obj)
-				
-				
+				'Name' = $_.name
+				'DaysUntil' = $daystoexpire
+				'EmailAddress' = $_.emailaddress
+				'LastSet' = $_.PasswordLastSet.ToShortDateString()
+				'LockedOut' = $_.LockedOut
+				'UPN'  = $_.UserPrincipalName
 			}
+			
+			$PWExpiringTable.Add($obj)
+			
+			
 		}
 	}
 }
+
 
 #Sort the table so the Teams message shows expiring soonest to latest
 $PWExpiringTable = $PWExpiringTable | sort-Object DaysUntil
