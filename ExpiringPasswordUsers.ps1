@@ -2,16 +2,20 @@ $SendMessage = $null
 #Get all users whose password expires in X days and less, this sets the days
 $LessThan = 7
 #Teams web hook URL
-$uri = "INSET WEBHOOK URL"
+$uri = "[INSERT WEBHOOK URI]"
 
 $ItemImage = 'https://img.icons8.com/color/1600/circled-user-male-skin-type-1-2.png'
 
 $PWExpiringTable = New-Object 'System.Collections.Generic.List[System.Object]'
 $ArrayTable = New-Object 'System.Collections.Generic.List[System.Object]'
+$ArrayTableExpired = New-Object 'System.Collections.Generic.List[System.Object]'
 
 $maxPasswordAge = ((Get-ADDefaultDomainPasswordPolicy).MaxPasswordAge).Days
 #Get all users and store in a variable named $Users
-Get-Aduser -filter { (PasswordNeverExpires -eq $false) -and (enabled -eq $true) } -properties * | ForEach-Object{
+get-aduser -filter { (PasswordNeverExpires -eq $false) -and (enabled -eq $true) } -properties * | ForEach-Object{
+	Write-Host "Working on $($_.Name)" -ForegroundColor White
+	
+	
 	#Get Password last set date
 	$passwordSetDate = ($_.PasswordLastSet)
 	
@@ -40,12 +44,12 @@ Get-Aduser -filter { (PasswordNeverExpires -eq $false) -and (enabled -eq $true) 
 		$daystoexpire = (New-TimeSpan -Start $today -End $Expireson).Days
 		If ($daystoexpire -lt ($LessThan + 1))
 		{
+			write-host "$($_.Name) will be added to table" -ForegroundColor red
 			If ($daystoexpire -lt 0)
 			{
 				#0x2 = Password has been expired
 				$daystoexpire = "Password is Expired"
 			}
-			
 			$obj = [PSCustomObject]@{
 				
 				'Name' = $_.name
@@ -54,15 +58,18 @@ Get-Aduser -filter { (PasswordNeverExpires -eq $false) -and (enabled -eq $true) 
 				'LastSet' = $_.PasswordLastSet.ToShortDateString()
 				'LockedOut' = $_.LockedOut
 				'UPN'  = $_.UserPrincipalName
+				'Enabled' = $_.Enabled
+				'PasswordNeverExpires' = $_.PasswordNeverExpires
 			}
 			
 			$PWExpiringTable.Add($obj)
-			
-			
+		}
+		Else
+		{
+			write-host "$($_.Name)'s account is compliant" -ForegroundColor Green
 		}
 	}
 }
-
 
 #Sort the table so the Teams message shows expiring soonest to latest
 $PWExpiringTable = $PWExpiringTable | sort-Object DaysUntil
@@ -71,58 +78,33 @@ $PWExpiringTable | ForEach-Object{
 	
 	If ($_.DaysUntil -eq "Password is Expired")
 	{
-		$Section = @{
+		write-host "$($_.name) is expired" -ForegroundColor DarkRed
+		$SectionExpired = @{
 			activityTitle = "$($_.Name)"
 			activitySubtitle = "$($_.EmailAddress)"
 			activityText  = "$($_.Name)'s password has already expired!"
 			activityImage = $ItemImage
-			
-			
-			facts		  = @(
-				@{
-					name  = 'Days Until Password Expires:'
-					value = $_.DaysUntil
-				},
-				@{
-					name  = 'Password Last Set:'
-					value = $_.LastSet
-				},
-				@{
-					name  = 'Locked Out'
-					value = $_.LockedOut
-				}
-			)
 		}
+		$ArrayTableExpired.add($SectionExpired)
 	}
 	Else
 	{
+		write-host "$($_.name) is expiring" -ForegroundColor DarkYellow
 		$Section = @{
 			activityTitle = "$($_.Name)"
 			activitySubtitle = "$($_.EmailAddress)"
 			activityText  = "$($_.Name) needs to change their password in $($_.DaysUntil) days"
 			activityImage = $ItemImage
-			
-			
-			facts		  = @(
-				@{
-					name  = 'Days Until Password Expires:'
-					value = $_.DaysUntil
-				},
-				@{
-					name  = 'Password Last Set:'
-					value = $_.LastSet
-				},
-				@{
-					name  = 'Locked Out'
-					value = $_.LockedOut
-				}
-			)
 		}
+		
+		$ArrayTable.add($Section)
+		
 	}
-	
-	$ArrayTable.add($section)
-	
 }
+
+
+Write-Host "Expired Accounts: $($($ArrayTableExpired).count)" -ForegroundColor Yellow
+write-Host "Expiring Accounts: $($($ArrayTable).count)" -ForegroundColor Yellow
 
 
 
@@ -133,9 +115,15 @@ $body = ConvertTo-Json -Depth 8 @{
 	sections = $ArrayTable
 	
 }
+Write-Host "Sending expiring users notification" -ForegroundColor Green
+Invoke-RestMethod -uri $uri -Method Post -body $body -ContentType 'application/json'
 
-$SendMessage = Invoke-RestMethod -uri $uri -Method Post -body $body -ContentType 'application/json'
-If ($SendMessage -eq 1)
-{
-	Write-Host "Successfuly sent the message to Teams" -ForegroundColor Green
+
+$body2 = ConvertTo-Json -Depth 8 @{
+	title = 'Users With Password Expired - Notification'
+	text  = "There are $($ArrayTableExpired.Count) users that have passwords that have expired already"
+	sections = $ArrayTableExpired
+	
 }
+Write-Host "Sending expired users notification" -ForegroundColor Green
+Invoke-RestMethod -uri $uri -Method Post -body $body2 -ContentType 'application/json'
