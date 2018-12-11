@@ -18,7 +18,7 @@ Send a Microsoft Teams message containing all of your Active Directory user acco
 
 ____
 
-## Post Expiring User Accounts as a Microsoft Teams Message with PowerShell
+## Post Inactive User Accounts as a Microsoft Teams Message with PowerShell
 Send a Microsoft Teams message containing all of your Active Directory user accounts have not logged on in 90 days or more. (number is configurable)
 
 * [Blog Writeup](https://thelazyadministrator.com/2018/12/11/post-inactive-users-as-a-microsoft-teams-message-with-powershell/)
