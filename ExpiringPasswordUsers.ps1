@@ -10,6 +10,9 @@ $PWExpiringTable = New-Object 'System.Collections.Generic.List[System.Object]'
 $ArrayTable = New-Object 'System.Collections.Generic.List[System.Object]'
 $ArrayTableExpired = New-Object 'System.Collections.Generic.List[System.Object]'
 
+$ExpiringUsers = 0
+$ExpiredUsers = 0
+
 $maxPasswordAge = ((Get-ADDefaultDomainPasswordPolicy).MaxPasswordAge).Days
 #Get all users and store in a variable named $Users
 get-aduser -filter { (PasswordNeverExpires -eq $false) -and (enabled -eq $true) } -properties * | ForEach-Object{
@@ -79,6 +82,7 @@ $PWExpiringTable | ForEach-Object{
 	If ($_.DaysUntil -eq "Password is Expired")
 	{
 		write-host "$($_.name) is expired" -ForegroundColor DarkRed
+		$ExpiredUsers++
 		$SectionExpired = @{
 			activityTitle = "$($_.Name)"
 			activitySubtitle = "$($_.EmailAddress)"
@@ -90,6 +94,7 @@ $PWExpiringTable | ForEach-Object{
 	Else
 	{
 		write-host "$($_.name) is expiring" -ForegroundColor DarkYellow
+		$ExpiringUsers++
 		$Section = @{
 			activityTitle = "$($_.Name)"
 			activitySubtitle = "$($_.EmailAddress)"
@@ -103,8 +108,8 @@ $PWExpiringTable | ForEach-Object{
 }
 
 
-Write-Host "Expired Accounts: $($($ArrayTableExpired).count)" -ForegroundColor Yellow
-write-Host "Expiring Accounts: $($($ArrayTable).count)" -ForegroundColor Yellow
+Write-Host "Expired Accounts: $($($ExpiredUsers).count)" -ForegroundColor Yellow
+write-Host "Expiring Accounts: $($($ExpiringUsers).count)" -ForegroundColor Yellow
 
 
 
