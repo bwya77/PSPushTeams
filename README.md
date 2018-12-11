@@ -5,7 +5,7 @@ Microsoft Teams has many connectors available including Incoming Webhook.This p
 
 ### Table of Contents
 * [Users Expiring Passwords](https://github.com/bwya77/PSPushTeams/blob/master/README.md#post-users-with-expiring-passwords-as-microsoft-teams-message-with-powershell)
-* [Inactive User Accounts](https://github.com/bwya77/PSPushTeams/blob/master/README.md#post-users-with-expiring-passwords-as-microsoft-teams-message-with-powershell)
+* [Inactive User Accounts](https://github.com/bwya77/PSPushTeams/blob/master/README.md#post-expiring-user-accounts-as-a-microsoft-teams-message-with-powershell)
 
 ## Post Users with Expiring Passwords as Microsoft Teams Message with PowerShell 
 Send a Microsoft Teams message containing all of your Active Directory user accounts that have passwords expiring in 7 days or less. (number is configurable)
