@@ -17,7 +17,7 @@ $ItemImage = 'https://img.icons8.com/color/1600/circled-user-male-skin-type-1-2.
 
 $ArrayTable = New-Object 'System.Collections.Generic.List[System.Object]'
 
-$RecentLockedOutUser = Search-ADAccount -LockedOut | Get-ADUser -Properties badpwdcount, lockoutTime, lockedout, emailaddress | Select-Object badpwdcount, lockedout, Name, EmailAddress, SamAccountName, @{ Name = "LockoutTime"; Expression = { ([datetime]::FromFileTime($_.lockoutTime).ToLocalTime()) } } | Sort-Object LockoutTime -Descending | Select-Object -first 1
+$RecentLockedOutUser = Search-ADAccount -server <domain controller> -LockedOut | Get-ADUser -Properties badpwdcount, lockoutTime, lockedout, emailaddress | Select-Object badpwdcount, lockedout, Name, EmailAddress, SamAccountName, @{ Name = "LockoutTime"; Expression = { ([datetime]::FromFileTime($_.lockoutTime).ToLocalTime()) } } | Sort-Object LockoutTime -Descending | Select-Object -first 1
 
 $RecentLockedOutUser | ForEach-Object {
 	
