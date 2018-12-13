@@ -28,3 +28,10 @@ Send a Microsoft Teams message containing all of your Active Directory user acco
 
 
 ____
+## Post Locked Out AD User Accounts to Microsoft Teams Message with PowerShell
+Send a Microsoft Teams message the moment one of your Active Directory users gets locked out
+
+* [Blog Writeup](https://thelazyadministrator.com/2018/12/13/get-a-teams-notification-the-moment-an-active-directory-user-gets-locked-out-with-powershell-using-webhooks/)
+* [Download Script](https://github.com/bwya77/PSPushTeams/blob/master/LockedOutUser.ps1)
+
+![Post Message](https://thelazyadministrator.com/wp-content/uploads/2018/12/lockout.png)
