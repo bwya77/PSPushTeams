@@ -12,8 +12,6 @@
 #Teams webhook url
 $uri = "[INSERT WEBHOOK URL]"
 
-$DomainContoller = "Insert Domain Controller"
-
 #Image on the left hand side, here I have a regular user picture
 $ItemImage = 'https://img.icons8.com/color/1600/circled-user-male-skin-type-1-2.png'
 
