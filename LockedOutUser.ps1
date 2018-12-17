@@ -17,6 +17,15 @@ $ItemImage = 'https://img.icons8.com/color/1600/circled-user-male-skin-type-1-2.
 
 $ArrayTable = New-Object 'System.Collections.Generic.List[System.Object]'
 
+$Event = Get-EventLog -LogName Security -InstanceId 4740 | Select-object -First 1
+[string]$Item = $Event.Message
+$Item.SubString($Item.IndexOf("Caller Computer Name"))
+$sMachineName = $Item.SubString($Item.IndexOf("Caller Computer Name"))
+$sMachineName = $sMachineName.TrimStart("Caller Computer Name :")
+$sMachineName = $sMachineName.TrimEnd("}")
+$sMachineName = $sMachineName.Trim()
+$sMachineName = $sMachineName.TrimStart("\\")
+
 $RecentLockedOutUser = Search-ADAccount -server $DomainContoller -LockedOut | Get-ADUser -Properties badpwdcount, lockoutTime, lockedout, emailaddress | Select-Object badpwdcount, lockedout, Name, EmailAddress, SamAccountName, @{ Name = "LockoutTime"; Expression = { ([datetime]::FromFileTime($_.lockoutTime).ToLocalTime()) } } | Sort-Object LockoutTime -Descending | Select-Object -first 1
 
 $RecentLockedOutUser | ForEach-Object {
@@ -27,6 +36,10 @@ $RecentLockedOutUser | ForEach-Object {
 		activityText  = "$($_.Name)'s account was locked out at $(($_.LockoutTime).ToString("hh:mm:ss tt")) and may require additional assistance"
 		activityImage = $ItemImage
 		facts		  = @(
+			@{
+				name  = 'Lockout Source:'
+				value = $sMachineName
+			},
 			@{
 				name  = 'Lock-Out Timestamp:'
 				value = $_.LockoutTime.ToString()
